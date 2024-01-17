@@ -1,0 +1,6 @@
+# dirs
+.vscode/
+objs/
+
+# files
+ray
