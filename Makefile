@@ -19,7 +19,7 @@ NAME			= ray
 #####   COMMANDS   #####
 
 CC				= nvcc
-#CFLAGS			= -Werror -Wextra -Wall
+CFLAGS			= -g
 
 MD				= mkdir -p
 RM				= rm -rf
@@ -68,15 +68,18 @@ fclean: clean
 
 re: fclean all
 
-bonus: all
-
 
 
 #####   EXTRA RULES   #####
 
 test: all
-	clear
-	@ ./$(NAME) > im.ppm
+	@ clear
+	@ ./$(NAME) > image.ppm
+	@ xdg-open image.ppm
+
+#  https://developer.nvidia.com/tools-overview
+dtest:
+	@ nvprof --metrics inst_fp_32,inst_fp_64 ./$(NAME) > image.ppm
 
 run: test
 rrun: fclean test
@@ -90,4 +93,4 @@ var: val
 
 #####   PHONY   #####
 
-.PHONY: all clean fclean re bonus test run rrun val var
+.PHONY: all clean fclean re bonus test dtest run rrun val var
