@@ -21,6 +21,8 @@
 # define BLOCK_H 8
 
 # define SEED 42
+# define REFRACTION 50
+# define ATTENUATION 0.5f
 
 
 #endif

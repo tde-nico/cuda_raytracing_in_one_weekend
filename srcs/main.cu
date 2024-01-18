@@ -4,17 +4,39 @@
 #include <float.h>
 
 
-__device__ vec3	ray_color(const ray &r, hittable **world)
+__device__ vec3	unit_sphere_rand(curandState *s)
 {
+	vec3	p;
+	p = vec3(curand_uniform(s),curand_uniform(s),curand_uniform(s)) * 2.0f - vec3(1,1,1);
+	while (p.length_squared() >= 1.0f)
+	return (p);
+}
+
+__device__ vec3	ray_color(const ray &r, hittable **world, curandState *rand_state)
+{
+	ray				curr_ray;
+	float			attenuation;
 	t_hit_record	rec;
 	float			t;
-	vec3			unit_direction;
 
-	if ((*world)->hit(r, 0.0f, FLT_MAX, rec))
-		return ((rec.normal + vec3(1,1,1)) * 0.5f);
-	unit_direction = unit_vector(r.direction());
-	t = 0.5f * (unit_direction.y() + 1.0f);
-	return (vec3(1.0, 1.0, 1.0) * (1.0f-t) + vec3(0.5, 0.7, 1.0) * t);
+	curr_ray = r;
+	attenuation = 1.0f;
+	for (int i = 0; i < REFRACTION; ++i)
+	{
+		if ((*world)->hit(curr_ray, 0.001f, FLT_MAX, rec))
+		{
+			vec3 target = rec.p + rec.normal + unit_sphere_rand(rand_state);
+			attenuation *= ATTENUATION;
+			curr_ray = ray(rec.p, target - rec.p);
+		}
+		else
+		{
+			vec3 unit_direction = unit_vector(curr_ray.direction());
+			t = 0.5f * (unit_direction.y() + 1.0f);
+			return ((vec3(1,1,1)*(1.0f-t) + vec3(0.5,0.7,1.0)*t) * attenuation);
+		}
+	}
+	return (vec3(0, 0, 0));
 }
 
 __global__ void	render_init(curandState *rand_state)
@@ -51,14 +73,19 @@ __global__ void	render(vec3 *buf, camera **cam, hittable **world, curandState *r
 
 	state = rand_state[i];
 	color = vec3(0, 0, 0);
-	for (int s = 0; s <= SAMPLES; ++s)
+	for (int s = 0; s < SAMPLES; ++s)
 	{
 		u = float(x + curand_uniform(&state)) / float(W);
 		v = float(y + curand_uniform(&state)) / float(H);
 		r = (*cam)->get_ray(u, v);
-		color += ray_color(r, world);
+		color += ray_color(r, world, &state);
 	}
-	buf[i] = color / float(SAMPLES);
+	//rand_state[i] = state;
+	color /= float(SAMPLES);
+	color[0] = std::sqrt(color[0]);
+	color[1] = std::sqrt(color[1]);
+	color[2] = std::sqrt(color[2]);
+	buf[i] = color;
 }
 
 void	write_color(std::ostream &out, vec3 pixel)
