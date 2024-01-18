@@ -3,6 +3,7 @@
 
 # include <iostream>
 # include <cuda.h>
+# include <curand_kernel.h>
 # include <cmath>
 
 // https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html
