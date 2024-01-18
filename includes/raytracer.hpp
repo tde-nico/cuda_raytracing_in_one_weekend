@@ -1,9 +1,14 @@
 #ifndef RAYTRACER_HPP
 # define RAYTRACER_HPP
 
+
 # include "utils.hpp"
 # include "vec3.hpp"
 # include "ray.hpp"
+# include "hittable.hpp"
+# include "hittable_list.hpp"
+# include "sphere.hpp"
+
 
 # define W 800
 # define H 800
