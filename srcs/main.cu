@@ -76,7 +76,7 @@ __global__ void	render(vec3 *buf, camera **cam, hittable **world, curandState *r
 	{
 		u = float(x + curand_uniform(&state)) / float(W);
 		v = float(y + curand_uniform(&state)) / float(H);
-		r = (*cam)->get_ray(u, v);
+		r = (*cam)->get_ray(u, v, &state);
 		color += ray_color(r, world, &state);
 	}
 	rand_state[i] = state;
@@ -122,7 +122,11 @@ __global__ void	create_world(hittable **d_list, hittable **d_world, camera **d_c
 	d_list[3] = new sphere(vec3(-1,0,-1), 0.5, new dielectric(1.5));
 	d_list[4] = new sphere(vec3(-1,0,-1), -0.45, new dielectric(1.5));
 	*d_world = new hittable_list(d_list, 5);
-	*d_camera = new camera(vec3(-2,2,1), vec3(0,0,-1), vec3(0,1,0), 20.0, ASPECT_RATIO);
+	vec3	lookfrom(3, 3, 2);
+	vec3	lookat(0, 0, -1);
+	float	dist_to_focus = (lookfrom - lookat).length();
+	float	aperture = 2.0f;
+	*d_camera = new camera(lookfrom, lookat, vec3(0,1,0), 20.0, ASPECT_RATIO, aperture, dist_to_focus);
 }
 
 __global__ void	free_world(hittable **d_list, hittable **d_world, camera **d_camera)
