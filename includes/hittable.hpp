@@ -3,11 +3,14 @@
 
 # include "ray.hpp"
 
+class material;
+
 typedef struct s_hit_record
 {
-	vec3	p;
-	vec3	normal;
-	float	t;
+	vec3		p;
+	vec3		normal;
+	float		t;
+	material	*mat;
 }	t_hit_record;
 
 

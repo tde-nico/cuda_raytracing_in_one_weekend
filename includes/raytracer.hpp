@@ -10,7 +10,7 @@
 # include "sphere.hpp"
 
 
-# define W 800
+# define W 1200
 # define H 800
 # define PIXELS W * H
 
@@ -22,7 +22,6 @@
 
 # define SEED 42
 # define REFRACTION 50
-# define ATTENUATION 0.5f
 
 
 #endif
