@@ -122,7 +122,7 @@ __global__ void	create_world(hittable **d_list, hittable **d_world, camera **d_c
 	d_list[3] = new sphere(vec3(-1,0,-1), 0.5, new dielectric(1.5));
 	d_list[4] = new sphere(vec3(-1,0,-1), -0.45, new dielectric(1.5));
 	*d_world = new hittable_list(d_list, 5);
-	*d_camera = new camera(/*vec3(-2,2,1), vec3(0,0,-1), vec3(0,1,0), 20.0, ASPECT_RATIO*/);
+	*d_camera = new camera(vec3(-2,2,1), vec3(0,0,-1), vec3(0,1,0), 20.0, ASPECT_RATIO);
 }
 
 __global__ void	free_world(hittable **d_list, hittable **d_world, camera **d_camera)

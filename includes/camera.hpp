@@ -24,9 +24,9 @@ class camera
 		vec3	horizontal;
 		vec3	vertical;
 
-		__device__ camera(/*vec3 lookfrom, vec3 lookat, vec3 vup, float vfov, float aspect*/)
+		__device__ camera(vec3 lookfrom, vec3 lookat, vec3 vup, float vfov, float aspect)
 		{
-			/*vec3	v;
+			vec3	v;
 			vec3	u;
 			vec3	w;
 			float	theta;
@@ -42,11 +42,7 @@ class camera
 			v = cross(w, u);
 			this->lower_left_corner = this->origin - u*half_w - v*half_h - w;
 			this->horizontal = u * half_w * 2;
-			this->vertical = v * half_h * 2;*/
-			this->origin = ORIGIN;
-			this->lower_left_corner = LOWER_LEFT_CORNER;
-			this->horizontal = HORIZONTAL;
-			this->vertical = VERTICAL;
+			this->vertical = v * half_h * 2;
 		}
 
 		__device__ ray	get_ray(float u, float v)
