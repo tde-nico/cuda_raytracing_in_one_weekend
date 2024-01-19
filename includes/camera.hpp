@@ -19,11 +19,40 @@
 class camera
 {
 	public:
-		__device__ camera() {}
+		vec3	origin;
+		vec3	lower_left_corner;
+		vec3	horizontal;
+		vec3	vertical;
+
+		__device__ camera(/*vec3 lookfrom, vec3 lookat, vec3 vup, float vfov, float aspect*/)
+		{
+			/*vec3	v;
+			vec3	u;
+			vec3	w;
+			float	theta;
+			float	half_h;
+			float	half_w;
+
+			theta = vfov * M_PI / 180;
+			half_h = tan(theta / 2);
+			half_w = aspect * half_h;
+			this->origin = lookfrom;
+			w = unit_vector(lookfrom - lookat);
+			u = unit_vector(cross(vup, w));
+			v = cross(w, u);
+			this->lower_left_corner = this->origin - u*half_w - v*half_h - w;
+			this->horizontal = u * half_w * 2;
+			this->vertical = v * half_h * 2;*/
+			this->origin = ORIGIN;
+			this->lower_left_corner = LOWER_LEFT_CORNER;
+			this->horizontal = HORIZONTAL;
+			this->vertical = VERTICAL;
+		}
 
 		__device__ ray	get_ray(float u, float v)
 		{
-			return (ray(ORIGIN, LOWER_LEFT_CORNER + HORIZONTAL*u + VERTICAL*v - ORIGIN));
+			return (ray(this->origin, this->lower_left_corner +
+				this->horizontal*u + this->vertical*v - this->origin));
 		}
 };
 

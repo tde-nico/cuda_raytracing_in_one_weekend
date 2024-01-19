@@ -79,7 +79,7 @@ __global__ void	render(vec3 *buf, camera **cam, hittable **world, curandState *r
 		r = (*cam)->get_ray(u, v);
 		color += ray_color(r, world, &state);
 	}
-	//rand_state[i] = state;
+	rand_state[i] = state;
 	color /= float(SAMPLES);
 	color[0] = std::sqrt(color[0]);
 	color[1] = std::sqrt(color[1]);
@@ -116,19 +116,20 @@ __global__ void	create_world(hittable **d_list, hittable **d_world, camera **d_c
 {
 	if (threadIdx.x != 0 || blockIdx.x != 0)
 		return ;
-	d_list[0] = new sphere(vec3(0,0,-1), 0.5, new lambertian(vec3(0.8, 0.3, 0.3)));
+	d_list[0] = new sphere(vec3(0,0,-1), 0.5, new lambertian(vec3(0.1, 0.2, 0.5)));
 	d_list[1] = new sphere(vec3(0,-100.5,-1), 100, new lambertian(vec3(0.8, 0.8, 0.0)));
-	d_list[2] = new sphere(vec3(1,0,-1), 0.5, new metal(vec3(0.8, 0.6, 0.2), 1.0));
-	d_list[3] = new sphere(vec3(-1,0,-1), 0.5, new metal(vec3(0.8, 0.8, 0.8), 0.3));
-	*d_world = new hittable_list(d_list, 4);
-	*d_camera = new camera();
+	d_list[2] = new sphere(vec3(1,0,-1), 0.5, new metal(vec3(0.8, 0.6, 0.2), 0.0));
+	d_list[3] = new sphere(vec3(-1,0,-1), 0.5, new dielectric(1.5));
+	d_list[4] = new sphere(vec3(-1,0,-1), -0.45, new dielectric(1.5));
+	*d_world = new hittable_list(d_list, 5);
+	*d_camera = new camera(/*vec3(-2,2,1), vec3(0,0,-1), vec3(0,1,0), 20.0, ASPECT_RATIO*/);
 }
 
 __global__ void	free_world(hittable **d_list, hittable **d_world, camera **d_camera)
 {
 	if (threadIdx.x != 0 || blockIdx.x != 0)
 		return ;
-	for (int i = 0; i < 4; ++i)
+	for (int i = 0; i < 5; ++i)
 	{
 		delete ((sphere *)d_list[i])->mat;
 		delete d_list[i];
@@ -152,7 +153,7 @@ int	main(void)
 
 	CHECK(cudaMallocManaged((void **)&buf, BSIZE));
 	CHECK(cudaMalloc((void **)&d_rand_state, PIXELS * sizeof(curandState)));
-	CHECK(cudaMalloc((void **)&d_list, 2*sizeof(hittable *)));
+	CHECK(cudaMalloc((void **)&d_list, 5*sizeof(hittable *)));
 	CHECK(cudaMalloc((void **)&d_world, sizeof(hittable *)));
 	CHECK(cudaMalloc((void **)&d_camera, sizeof(camera *)));
 	create_world<<<1,1>>>((hittable **)d_list, (hittable **)d_world, d_camera);
