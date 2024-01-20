@@ -55,7 +55,7 @@ class camera
 			this->v = cross(this->w, this->u);
 			this->lower_left_corner = this->origin - this->u*half_w*focus_dist - this->v*half_h*focus_dist - this->w*focus_dist;
 			this->horizontal = this->u * half_w * focus_dist * 2.0f;
-			this->vertical = this->v * half_h * focus_dist * 2.0f;
+			this->vertical = this->v * half_h * focus_dist * 2.0f;			
 		}
 
 		__device__ ray	get_ray(float s, float t, curandState *state)

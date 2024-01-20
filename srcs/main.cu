@@ -38,7 +38,7 @@ __device__ vec3	ray_color(const ray &r, hittable **world, curandState *rand_stat
 	return (vec3(0, 0, 0));
 }
 
-__global__ void	render_init(curandState *rand_state)
+__global__ void	rand_init(curandState *rand_state)
 {
 	int		x;
 	int		y;
@@ -104,36 +104,52 @@ void	print(vec3 *buf)
 	}
 }
 
-/*
-https://raytracing.github.io/v3/books/RayTracingInOneWeekend.html
-https://github.com/RayTracing/raytracing.github.io/
-https://developer.nvidia.com/blog/accelerated-ray-tracing-cuda/
-https://github.com/rogerallen/raytracinginoneweekendincuda?tab=readme-ov-file
-*/
 
-
-__global__ void	create_world(hittable **d_list, hittable **d_world, camera **d_camera)
+#define RND (curand_uniform(&local_rand_state))
+__global__ void	create_world(hittable **d_list, hittable **d_world, camera **d_camera, curandState *rand_state)
 {
+	int	i;
+
 	if (threadIdx.x != 0 || blockIdx.x != 0)
 		return ;
-	d_list[0] = new sphere(vec3(0,0,-1), 0.5, new lambertian(vec3(0.1, 0.2, 0.5)));
-	d_list[1] = new sphere(vec3(0,-100.5,-1), 100, new lambertian(vec3(0.8, 0.8, 0.0)));
-	d_list[2] = new sphere(vec3(1,0,-1), 0.5, new metal(vec3(0.8, 0.6, 0.2), 0.0));
-	d_list[3] = new sphere(vec3(-1,0,-1), 0.5, new dielectric(1.5));
-	d_list[4] = new sphere(vec3(-1,0,-1), -0.45, new dielectric(1.5));
-	*d_world = new hittable_list(d_list, 5);
-	vec3	lookfrom(3, 3, 2);
-	vec3	lookat(0, 0, -1);
-	float	dist_to_focus = (lookfrom - lookat).length();
-	float	aperture = 2.0f;
-	*d_camera = new camera(lookfrom, lookat, vec3(0,1,0), 20.0, ASPECT_RATIO, aperture, dist_to_focus);
+
+
+	curandState local_rand_state = *rand_state;
+	d_list[0] = new sphere(vec3(0,-1000.0,-1), 1000, new lambertian(vec3(0.5, 0.5, 0.5)));
+	i = 1;
+	for(int a = -11; a < 11; ++a)
+	{
+		for(int b = -11; b < 11; ++b)
+		{
+			float choose_mat = RND;
+			vec3 center(a+RND,0.2,b+RND);
+			if(choose_mat < 0.8f)
+				d_list[i++] = new sphere(center, 0.2, new lambertian(vec3(RND*RND, RND*RND, RND*RND)));
+			else if(choose_mat < 0.95f)
+				d_list[i++] = new sphere(center, 0.2, new metal(
+					vec3(0.5f*(1.0f+RND), 0.5f*(1.0f+RND), 0.5f*(1.0f+RND)), 0.5f*RND));
+			else
+				d_list[i++] = new sphere(center, 0.2, new dielectric(1.5));
+		}
+	}
+	d_list[i++] = new sphere(vec3(0, 1,0),  1.0, new dielectric(1.5));
+	d_list[i++] = new sphere(vec3(-4, 1, 0), 1.0, new lambertian(vec3(0.4, 0.2, 0.1)));
+	d_list[i++] = new sphere(vec3(4, 1, 0),  1.0, new metal(vec3(0.7, 0.6, 0.5), 0.0));
+	*rand_state = local_rand_state;
+	*d_world  = new hittable_list(d_list, 22*22+1+3);
+
+	vec3 lookfrom(13,2,3);
+	vec3 lookat(0,0,0);
+	float dist_to_focus = 10.0; (lookfrom-lookat).length();
+	float aperture = 0.1;
+	*d_camera = new camera(lookfrom, lookat, vec3(0,1,0), 30.0, ASPECT_RATIO, aperture, dist_to_focus);
 }
 
 __global__ void	free_world(hittable **d_list, hittable **d_world, camera **d_camera)
 {
 	if (threadIdx.x != 0 || blockIdx.x != 0)
 		return ;
-	for (int i = 0; i < 5; ++i)
+	for (int i = 0; i < 22*22+1+3; ++i)
 	{
 		delete ((sphere *)d_list[i])->mat;
 		delete d_list[i];
@@ -148,6 +164,7 @@ int	main(void)
 	hittable_list	**d_list;
 	hittable_list	**d_world;
 	curandState		*d_rand_state;
+	curandState		*d_rand_state2;
 	camera			**d_camera;
 	clock_t			start;
 	clock_t			stop;
@@ -157,17 +174,21 @@ int	main(void)
 
 	CHECK(cudaMallocManaged((void **)&buf, BSIZE));
 	CHECK(cudaMalloc((void **)&d_rand_state, PIXELS * sizeof(curandState)));
-	CHECK(cudaMalloc((void **)&d_list, 5*sizeof(hittable *)));
+	CHECK(cudaMalloc((void **)&d_rand_state2, sizeof(curandState)));
+	CHECK(cudaMalloc((void **)&d_list, (22*22+1+3)*sizeof(hittable *)));
 	CHECK(cudaMalloc((void **)&d_world, sizeof(hittable *)));
 	CHECK(cudaMalloc((void **)&d_camera, sizeof(camera *)));
-	create_world<<<1,1>>>((hittable **)d_list, (hittable **)d_world, d_camera);
+	rand_init<<<1, 1>>>(d_rand_state2);
+	CHECK(cudaGetLastError());
+	CHECK(cudaDeviceSynchronize());
+	create_world<<<1,1>>>((hittable **)d_list, (hittable **)d_world, d_camera, d_rand_state2);
 	CHECK(cudaGetLastError());
 	CHECK(cudaDeviceSynchronize());
 
 	start = clock();
 	dim3 blocks(W / BLOCK_W + 1, H / BLOCK_H + 1);
 	dim3 threads(BLOCK_W, BLOCK_H);
-	render_init<<<blocks, threads>>>(d_rand_state);
+	rand_init<<<blocks, threads>>>(d_rand_state);
 	CHECK(cudaGetLastError());
 	CHECK(cudaDeviceSynchronize());
 	render<<<blocks, threads>>>(buf, d_camera, (hittable **)d_world, d_rand_state);
@@ -185,6 +206,7 @@ int	main(void)
 	CHECK(cudaFree(d_list));
 	CHECK(cudaFree(d_world));
 	CHECK(cudaFree(d_rand_state));
+	CHECK(cudaFree(d_rand_state2));
 	CHECK(cudaFree(buf));
 
 	return (0);
