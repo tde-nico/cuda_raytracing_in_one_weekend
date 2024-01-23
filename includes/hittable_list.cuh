@@ -2,6 +2,7 @@
 # define HITTABLE_LIST_CUH
 
 # include "hittable.cuh"
+# include "sphere.cuh"
 
 
 class hittable_list: public hittable
@@ -28,6 +29,27 @@ __device__ bool	hittable_list::hit(const ray &r, float t_min, float t_max, t_hit
 	for (int i = 0; i < this->size; ++i)
 	{
 		if (this->list[i]->hit(r, t_min, closest, tmp))
+		{
+			hit_anything = true;
+			closest = tmp.t;
+			rec = tmp;
+		}
+	}
+	return (hit_anything);
+}
+
+__device__ bool	O_hit(hittable_list *h, ray &r, float t_min, float t_max, t_hit_record &rec)
+{
+	t_hit_record	tmp;
+	bool			hit_anything;
+	float			closest;
+
+	hit_anything = false;
+	closest = t_max;
+	for (int i = 0; i < h->size; ++i)
+	{
+		//if (h->list[i]->hit(r, t_min, closest, tmp))
+		if (O_hit((sphere *)h->list[i], r, t_min, closest, tmp))
 		{
 			hit_anything = true;
 			closest = tmp.t;

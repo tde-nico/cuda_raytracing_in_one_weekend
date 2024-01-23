@@ -135,7 +135,7 @@ class dielectric: public material
 			else
 				scattered = ray(rec.p, refracted);
 			return (true);
-		};
+		}
 };
 
 

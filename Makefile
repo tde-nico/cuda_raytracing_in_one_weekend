@@ -79,7 +79,7 @@ test: all
 
 #  https://developer.nvidia.com/tools-overview
 dtest:
-	@ nvprof --metrics inst_fp_32,inst_fp_64 ./$(NAME) > image.ppm
+	@ nsys nvprof --metrics inst_fp_32,inst_fp_64 ./$(NAME) > image.ppm
 
 run: test
 rrun: fclean test

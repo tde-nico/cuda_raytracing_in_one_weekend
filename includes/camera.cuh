@@ -71,4 +71,16 @@ class camera
 };
 
 
+__device__ ray	O_get_ray(camera *c, float s, float t, curandState *state)
+{
+	vec3	offset;
+	vec3	rd;
+
+	rd = unit_disk_rand(state) * c->lens_radius;
+	offset = c->u * rd.e[0] + c->v * rd.e[1];
+	return (ray(c->origin + offset, c->lower_left_corner +
+		c->horizontal*s + c->vertical*t - c->origin - offset));
+}
+
+
 #endif

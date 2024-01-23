@@ -3,7 +3,7 @@
 #include "material.cuh"
 #include <time.h>
 #include <float.h>
-
+#include <stdio.h>
 
 __device__ vec3	ray_color(const ray &r, hittable **world, curandState *rand_state)
 {
@@ -16,7 +16,8 @@ __device__ vec3	ray_color(const ray &r, hittable **world, curandState *rand_stat
 	att = vec3(1, 1, 1);
 	for (int i = 0; i < REFRACTION; ++i)
 	{
-		if ((*world)->hit(curr_ray, 0.001f, FLT_MAX, rec))
+		//if ((*world)->hit(curr_ray, 0.001f, FLT_MAX, rec))
+		if (O_hit((hittable_list *)*world, curr_ray, 0.001f, FLT_MAX, rec))
 		{
 			ray		scattered;
 			vec3	attenuation;
@@ -76,10 +77,11 @@ __global__ void	render(vec3 *buf, camera **cam, hittable **world, curandState *r
 	{
 		u = float(x + curand_uniform(&state)) / float(W);
 		v = float(y + curand_uniform(&state)) / float(H);
-		r = (*cam)->get_ray(u, v, &state);
+		//r = (*cam)->get_ray(u, v, &state);
+		r = O_get_ray(*cam, u, v, &state);
 		color += ray_color(r, world, &state);
 	}
-	rand_state[i] = state;
+	//rand_state[i] = state;
 	color /= float(SAMPLES);
 	color[0] = std::sqrt(color[0]);
 	color[1] = std::sqrt(color[1]);
@@ -108,15 +110,12 @@ void	print(vec3 *buf)
 #define RND (curand_uniform(&local_rand_state))
 __global__ void	create_world(hittable **d_list, hittable **d_world, camera **d_camera, curandState *rand_state)
 {
-	int	i;
-
 	if (threadIdx.x != 0 || blockIdx.x != 0)
 		return ;
 
-
 	curandState local_rand_state = *rand_state;
 	d_list[0] = new sphere(vec3(0,-1000.0,-1), 1000, new lambertian(vec3(0.5, 0.5, 0.5)));
-	i = 1;
+	int i = 1;
 	for(int a = -11; a < 11; ++a)
 	{
 		for(int b = -11; b < 11; ++b)
@@ -160,7 +159,8 @@ __global__ void	free_world(hittable **d_list, hittable **d_world, camera **d_cam
 
 int	main(void)
 {
-	vec3			*buf;
+	//vec3			*h_buf;
+	vec3			*d_buf;
 	hittable_list	**d_list;
 	hittable_list	**d_world;
 	curandState		*d_rand_state;
@@ -172,7 +172,11 @@ int	main(void)
 	std::cerr << "Rendering a " << W << "x" << H << " image with " << SAMPLES;
 	std::cerr << " samples per pixel in " << BLOCK_W << "x" << BLOCK_H << " blocks.\n";
 
-	CHECK(cudaMallocManaged((void **)&buf, BSIZE));
+	CHECK(cudaMallocManaged((void **)&d_buf, BSIZE));
+	//h_buf = (vec3 *)malloc(BSIZE);
+	//CHECK(cudaMalloc((void **)&d_buf, BSIZE));
+	//CHECK(cudaMemcpy(d_buf, h_buf, BSIZE, cudaMemcpyHostToDevice));
+
 	CHECK(cudaMalloc((void **)&d_rand_state, PIXELS * sizeof(curandState)));
 	CHECK(cudaMalloc((void **)&d_rand_state2, sizeof(curandState)));
 	CHECK(cudaMalloc((void **)&d_list, (22*22+1+3)*sizeof(hittable *)));
@@ -180,35 +184,39 @@ int	main(void)
 	CHECK(cudaMalloc((void **)&d_camera, sizeof(camera *)));
 	rand_init<<<1, 1>>>(d_rand_state2);
 	CHECK(cudaGetLastError());
-	//CHECK(cudaDeviceSynchronize());
+	CHECK(cudaDeviceSynchronize());
 	create_world<<<1,1>>>((hittable **)d_list, (hittable **)d_world, d_camera, d_rand_state2);
 	CHECK(cudaGetLastError());
-	//CHECK(cudaDeviceSynchronize());
+	CHECK(cudaDeviceSynchronize());
 
 	dim3 blocks(W / BLOCK_W + 1, H / BLOCK_H + 1);
 	dim3 threads(BLOCK_W, BLOCK_H);
 	rand_init<<<blocks, threads>>>(d_rand_state);
 	CHECK(cudaGetLastError());
-	//CHECK(cudaDeviceSynchronize());
+	CHECK(cudaDeviceSynchronize());
 
 	start = clock();
-	render<<<blocks, threads>>>(buf, d_camera, (hittable **)d_world, d_rand_state);
+	render<<<blocks, threads>>>(d_buf, d_camera, (hittable **)d_world, d_rand_state);
 	CHECK(cudaGetLastError());
 	CHECK(cudaDeviceSynchronize());
 	stop = clock();
 	std::cerr << "Took: " << ((double)(stop - start)) / CLOCKS_PER_SEC << "\n";
 
-	print(buf);
+	//CHECK(cudaMemcpy(h_buf, d_buf, BSIZE, cudaMemcpyDeviceToHost));
+
+	print(d_buf);
+	//print(h_buf);
 
 	free_world<<<1,1>>>((hittable **)d_list, (hittable **)d_world, d_camera);
 	CHECK(cudaGetLastError());
-	//CHECK(cudaDeviceSynchronize());
+	CHECK(cudaDeviceSynchronize());
 	CHECK(cudaFree(d_camera));
 	CHECK(cudaFree(d_list));
 	CHECK(cudaFree(d_world));
 	CHECK(cudaFree(d_rand_state));
 	CHECK(cudaFree(d_rand_state2));
-	CHECK(cudaFree(buf));
+	CHECK(cudaFree(d_buf));
+	//free(h_buf);
 
 	return (0);
 }

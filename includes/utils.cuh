@@ -18,12 +18,4 @@ void check_cuda(cudaError_t res, const char *func, const char *file, const int l
 	exit(1);
 }
 
-
-# define PI 3.1415926535897932385f
-inline float	degrees_to_radiants(float degrees)
-{
-	return (degrees * PI / 180.0f);
-}
-
-
 #endif
