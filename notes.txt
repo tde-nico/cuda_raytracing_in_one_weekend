@@ -1,0 +1,14 @@
+Abbiamo anche sperimentato 2 metodi per la creazione del mondo, il primo,
+semplicemnte lanciando un kernel sulla gpu e fare li tutte le allocazioni
+e manipolazioni del caso, e il secondo, dove facciamo tutte le allocazioni
+sull'host e con delle memcopy ci spostiamo gli oggetti settati, sul device.
+
+
+
+
+1. Dà lavoro sequenziale alla gpu e non sfrutta il parallelismo
+2. Permette un maggiore controllo sulle allocazioni e sulle copie
+    citare SoA sono genericamente più veloci di AoS e quindi abbiamo provato
+    questo approccio. Peccato però che il codice diventa difficile da leggere
+    e si creano delle dipendenze di allocazione tra le strutture che inducono
+    molto facilmente ad errori.
