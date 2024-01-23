@@ -1,6 +1,6 @@
-#include "raytracer.hpp"
-#include "camera.hpp"
-#include "material.hpp"
+#include "raytracer.cuh"
+#include "camera.cuh"
+#include "material.cuh"
 #include <time.h>
 #include <float.h>
 
@@ -180,17 +180,18 @@ int	main(void)
 	CHECK(cudaMalloc((void **)&d_camera, sizeof(camera *)));
 	rand_init<<<1, 1>>>(d_rand_state2);
 	CHECK(cudaGetLastError());
-	CHECK(cudaDeviceSynchronize());
+	//CHECK(cudaDeviceSynchronize());
 	create_world<<<1,1>>>((hittable **)d_list, (hittable **)d_world, d_camera, d_rand_state2);
 	CHECK(cudaGetLastError());
-	CHECK(cudaDeviceSynchronize());
+	//CHECK(cudaDeviceSynchronize());
 
-	start = clock();
 	dim3 blocks(W / BLOCK_W + 1, H / BLOCK_H + 1);
 	dim3 threads(BLOCK_W, BLOCK_H);
 	rand_init<<<blocks, threads>>>(d_rand_state);
 	CHECK(cudaGetLastError());
-	CHECK(cudaDeviceSynchronize());
+	//CHECK(cudaDeviceSynchronize());
+
+	start = clock();
 	render<<<blocks, threads>>>(buf, d_camera, (hittable **)d_world, d_rand_state);
 	CHECK(cudaGetLastError());
 	CHECK(cudaDeviceSynchronize());
@@ -201,7 +202,7 @@ int	main(void)
 
 	free_world<<<1,1>>>((hittable **)d_list, (hittable **)d_world, d_camera);
 	CHECK(cudaGetLastError());
-	CHECK(cudaDeviceSynchronize());
+	//CHECK(cudaDeviceSynchronize());
 	CHECK(cudaFree(d_camera));
 	CHECK(cudaFree(d_list));
 	CHECK(cudaFree(d_world));

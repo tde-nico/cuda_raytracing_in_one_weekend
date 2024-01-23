@@ -36,7 +36,7 @@ INC_SUB_DIRS	= $(shell find $(INC_DIR) -type d)
 OBJ_SUB_DIRS	= $(SRC_SUB_DIRS:$(SRC_DIR)%=$(OBJ_DIR)%)
 
 SRCS			= $(foreach DIR, $(SRC_SUB_DIRS), $(wildcard $(DIR)/*.cu))
-INCS			= $(foreach DIR, $(INC_SUB_DIRS), $(wildcard $(DIR)/*.hpp))
+INCS			= $(foreach DIR, $(INC_SUB_DIRS), $(wildcard $(DIR)/*.cuh))
 OBJS			= $(SRCS:$(SRC_DIR)/%.cu=$(OBJ_DIR)/%.o)
 
 
