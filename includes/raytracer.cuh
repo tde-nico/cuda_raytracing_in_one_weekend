@@ -23,6 +23,9 @@
 # define SEED 42
 # define REFRACTION 10
 
+# define SHARED 1
+# define WEIGHT 0.5f
+
 
 /*
 2.07126

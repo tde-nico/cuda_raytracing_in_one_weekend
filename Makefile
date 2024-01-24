@@ -19,7 +19,7 @@ NAME			= ray
 #####   COMMANDS   #####
 
 CC				= nvcc
-CFLAGS			= -g
+CFLAGS			= -g --use_fast_math
 
 MD				= mkdir -p
 RM				= rm -rf
@@ -73,7 +73,6 @@ re: fclean all
 #####   EXTRA RULES   #####
 
 test: all
-	@ clear
 	@ ./$(NAME) > image.ppm
 	@ xdg-open image.ppm
 
