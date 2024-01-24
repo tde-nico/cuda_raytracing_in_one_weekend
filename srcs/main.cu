@@ -67,8 +67,13 @@ __global__ void	render(vec3 *buf, camera **cam, hittable **world, curandState *r
 
 	x = blockDim.x * blockIdx.x + threadIdx.x;
 	y = blockDim.y * blockIdx.y + threadIdx.y;
+
+	__shared__ vec3	share_sam[BLOCK_H][BLOCK_W];
 	if (x >= W || y >= H)
+	{
+		share_sam[threadIdx.y][threadIdx.x] = vec3(-1,-1,-1);
 		return ;
+	}
 	i = W*y + x;
 
 	state = rand_state[i];
@@ -77,17 +82,46 @@ __global__ void	render(vec3 *buf, camera **cam, hittable **world, curandState *r
 	{
 		u = float(x + curand_uniform(&state)) / float(W);
 		v = float(y + curand_uniform(&state)) / float(H);
-		//r = (*cam)->get_ray(u, v, &state);
 		r = O_get_ray(*cam, u, v, &state);
 		color += ray_color(r, world, &state);
 	}
 	//rand_state[i] = state;
 	color /= float(SAMPLES);
+
+	
+	share_sam[threadIdx.y][threadIdx.x] = color;
+	
+	__syncthreads();
+
+	float weight = 0.5f;
+	vec3 sam = vec3(0,0,0);
+	int cnt = 0;
+	if (threadIdx.x+1 < blockDim.x){
+		sam += share_sam[threadIdx.y][threadIdx.x + 1];
+		++cnt;
+	}
+	if (threadIdx.y+1 < blockDim.y){
+		sam += share_sam[threadIdx.y + 1][threadIdx.x];
+		++cnt;
+	}
+	if (threadIdx.x-1 < blockDim.x){
+		sam += share_sam[threadIdx.y][threadIdx.x - 1];
+		++cnt;
+	}
+	if (threadIdx.y-1 < blockDim.y){
+		sam += share_sam[threadIdx.y - 1][threadIdx.x];
+		++cnt;
+	}
+
+	color = (1-weight) * color + weight * sam / float(cnt);
+
 	color[0] = std::sqrt(color[0]);
 	color[1] = std::sqrt(color[1]);
 	color[2] = std::sqrt(color[2]);
 	buf[i] = color;
 }
+
+
 
 void	write_color(std::ostream &out, vec3 pixel)
 {

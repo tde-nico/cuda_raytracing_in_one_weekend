@@ -14,33 +14,18 @@
 # define H 800
 # define PIXELS W * H
 
-# define SAMPLES 32
+# define SAMPLES 25
 
 # define BSIZE PIXELS * sizeof(vec3)
 # define BLOCK_W 8
 # define BLOCK_H 8
 
 # define SEED 42
-# define REFRACTION 50
+# define REFRACTION 10
 
 
 /*
-SAMPLES 400
-REFRACTION 50
-800+
-
-SAMPLES 32
-REFRACTION 8
-61 / 62
-
-W 1200 -> 800
-H 800 -> 600
-29 / 30
-
-
-10.2347
-10.2802
-
+2.07126
 */
 
 #endif
