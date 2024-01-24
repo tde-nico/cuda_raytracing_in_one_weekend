@@ -1,9 +1,7 @@
 #include "raytracer.cuh"
-#include "camera.cuh"
-#include "material.cuh"
-#include <time.h>
-#include <float.h>
-#include <stdio.h>
+
+
+// #################### RENDER ####################
 
 __device__ vec3	ray_color(const ray &r, hittable **world, curandState *rand_state)
 {
@@ -39,20 +37,6 @@ __device__ vec3	ray_color(const ray &r, hittable **world, curandState *rand_stat
 	return (vec3(0, 0, 0));
 }
 
-__global__ void	rand_init(curandState *rand_state)
-{
-	int		x;
-	int		y;
-	int		i;
-
-	x = blockDim.x * blockIdx.x + threadIdx.x;
-	y = blockDim.y * blockIdx.y + threadIdx.y;
-	if (x >= W || y >= H)
-		return ;
-	i = W*y + x;
-
-	curand_init(SEED, i, 0, &rand_state[i]);
-}
 
 __global__ void	render(vec3 *buf, camera **cam, hittable **world, curandState *rand_state)
 {
@@ -132,22 +116,22 @@ __global__ void	render(vec3 *buf, camera **cam, hittable **world, curandState *r
 }
 
 
+// #################### INIT ####################
 
-void	write_color(std::ostream &out, vec3 pixel)
-{
-	out << int(255.99 * pixel.r()) << ' '
-		<< int(255.99 * pixel.g()) << ' '
-		<< int(255.99 * pixel.b()) << '\n';
-}
 
-void	print(vec3 *buf)
+__global__ void	rand_init(curandState *rand_state)
 {
-	std::cout << "P3\n" << W << " " << H << "\n255\n";
-	for (int y = H-1; y >= 0; --y)
-	{
-		for (int x = 0; x < W; ++x)
-			write_color(std::cout, buf[W*y + x]);
-	}
+	int		x;
+	int		y;
+	int		i;
+
+	x = blockDim.x * blockIdx.x + threadIdx.x;
+	y = blockDim.y * blockIdx.y + threadIdx.y;
+	if (x >= W || y >= H)
+		return ;
+	i = W*y + x;
+
+	curand_init(SEED, i, 0, &rand_state[i]);
 }
 
 
@@ -178,7 +162,6 @@ __global__ void	create_world(hittable **d_list, hittable **d_world, camera **d_c
 	d_list[i++] = new sphere(vec3(0, 1,0),  1.0, new dielectric(1.5));
 	d_list[i++] = new sphere(vec3(-4, 1, 0), 1.0, new lambertian(vec3(0.4, 0.2, 0.1)));
 	d_list[i++] = new sphere(vec3(4, 1, 0),  1.0, new metal(vec3(0.7, 0.6, 0.5), 0.0));
-	*rand_state = local_rand_state;
 	*d_world  = new hittable_list(d_list, 22*22+1+3);
 
 	vec3 lookfrom(13,2,3);
@@ -187,6 +170,10 @@ __global__ void	create_world(hittable **d_list, hittable **d_world, camera **d_c
 	float aperture = 0.1;
 	*d_camera = new camera(lookfrom, lookat, vec3(0,1,0), 30.0, ASPECT_RATIO, aperture, dist_to_focus);
 }
+
+
+// #################### FREE ####################
+
 
 __global__ void	free_world(hittable **d_list, hittable **d_world, camera **d_camera)
 {
@@ -200,6 +187,30 @@ __global__ void	free_world(hittable **d_list, hittable **d_world, camera **d_cam
 	delete *d_world;
 	delete *d_camera;
 }
+
+
+// #################### UTILS ####################
+
+inline void	write_color(std::ostream &out, vec3 pixel)
+{
+	out << int(255.99 * pixel.r()) << ' '
+		<< int(255.99 * pixel.g()) << ' '
+		<< int(255.99 * pixel.b()) << '\n';
+}
+
+inline void	print(vec3 *buf)
+{
+	std::cout << "P3\n" << W << " " << H << "\n255\n";
+	for (int y = H-1; y >= 0; --y)
+	{
+		for (int x = 0; x < W; ++x)
+			write_color(std::cout, buf[W*y + x]);
+	}
+}
+
+
+// #################### MAIN ####################
+
 
 int	main(void)
 {

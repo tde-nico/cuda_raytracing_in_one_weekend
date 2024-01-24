@@ -1,8 +1,7 @@
 #ifndef CAMERA_CUH
 # define CAMERA_CUH
 
-
-# include "raytracer.cuh"
+# include "ray.cuh"
 
 
 # define ASPECT_RATIO float(W) / float(H)

@@ -2,12 +2,18 @@
 # define RAYTRACER_CUH
 
 
+# include <time.h>
+# include <float.h>
+# include <stdio.h>
+
 # include "utils.cuh"
 # include "vec3.cuh"
 # include "ray.cuh"
 # include "hittable.cuh"
 # include "hittable_list.cuh"
 # include "sphere.cuh"
+# include "camera.cuh"
+# include "material.cuh"
 
 
 # define W 1200
@@ -27,8 +33,5 @@
 # define WEIGHT 0.5f
 
 
-/*
-2.07126
-*/
 
 #endif

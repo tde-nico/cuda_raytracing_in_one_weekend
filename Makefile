@@ -84,7 +84,7 @@ run: test
 rrun: fclean test
 
 val: all
-	valgrind --leak-check=full $(EXECUTION)
+	valgrind --leak-check=full ./$(NAME) > image.ppm
 var: val
 
 
