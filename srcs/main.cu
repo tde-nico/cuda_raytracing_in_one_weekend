@@ -59,7 +59,7 @@ __global__ void	render(vec3 *buf, camera **cam, hittable **world, curandState *r
 	if (x >= W || y >= H)
 	{
 		#if SHARED
-			share_sam[threadIdx.y][threadIdx.x] = vec3(-1,-1,-1);
+			share_sam[threadIdx.y][threadIdx.x] = vec3(0, 0, 0);
 		#endif
 		return ;
 	}

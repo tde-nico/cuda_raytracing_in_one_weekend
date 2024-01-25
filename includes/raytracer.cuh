@@ -20,7 +20,7 @@
 # define H 800
 # define PIXELS W * H
 
-# define SAMPLES 25
+# define SAMPLES 32
 
 # define BSIZE PIXELS * sizeof(vec3)
 # define BLOCK_W 8

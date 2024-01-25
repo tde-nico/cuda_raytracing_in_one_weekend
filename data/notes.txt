@@ -30,3 +30,27 @@ conclusioni:
         Num.Sample: 60; Ex Time: 4.95851
         allegare immagini per far vedere che sono circa uguali
 
+
+
+WARP DIVERGENCE:
+Come tutti i raytracer, anche questo soffre di warp divergence a causa della 
+randomizzazione delle rifrazioni e riflessioni dei raggi. Di fatti, in un warp
+alcuni thread potrebbero giungere in direzioni dove incontrano oggetti riflettenti, 
+mentre altri no. In questo caso anche questi ultimi devono aspettare che i primi
+finiscano di calcolare il colore totale assunto dalla riflessione. 
+
+Abbiamo pensato di calcolare i sample in un nested kernel ed utilizzare una reduction
+tra i thread per calcolare il colore totale. Per fare questo ci siamo imbattuti in
+diversi problemi:
+    -compilazione: utilizzare compilazione e linking separati aggiungendo librerie 
+        nvcc -arch=sm_35 -rdc=true myprog.cu -lcudadevrt -o myprog.o
+        nvcc -arch=sm_35 myprog.o -lcudadevrt -o myprog
+    -esecuzione: essendo stata deprecata la funzione cudaDeviceSynchronize() nei 
+        kernel, ci è stato impossibile avere risultati concreti.
+        Abbiamo pensato anche di usare le stream, ma abbiamo visto che il lavoro
+        si complicava abbastanza. Potrebbe comunque rimanere un'idea per il futuro.
+
+nota: leggere http://prism.sejong.ac.kr/dossa-5/dossa_paper/paper3_hansung-kim-cost-of-divergence-for-ray-tracing-camera-ready-2nd.pdf
+per vedere se si può fare qualcosa di più intelligente per risolvere il problema
+della warp divergence.
+ 

@@ -19,7 +19,7 @@ NAME			= ray
 #####   COMMANDS   #####
 
 CC				= nvcc
-CFLAGS			= -g --use_fast_math
+CFLAGS			= -g --use_fast_math -rdc=true
 
 MD				= mkdir -p
 RM				= rm -rf
