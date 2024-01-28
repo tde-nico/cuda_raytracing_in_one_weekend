@@ -27,9 +27,9 @@
 # define BLOCK_H 8
 
 # define SEED 42
-# define REFRACTION 10
+# define REFRACTION 100
 
-# define SHARED 1
+# define SHARED 0
 # define WEIGHT 0.5f
 
 

@@ -5,6 +5,12 @@
 
 class material;
 
+/**
+ * @brief this struct contains hit record informations
+ * This struct is made of useful informations about hits
+ * like the hitted material, the hit distance, the point
+ * of impact and the normal of the hitten point.
+*/
 typedef struct s_hit_record
 {
 	vec3		p;
@@ -13,6 +19,12 @@ typedef struct s_hit_record
 	material	*mat;
 }	t_hit_record;
 
+
+/**
+ * @brief this class represents an hittable object
+ * This is an abstract class with only virtual methods which
+ * will get overrided by derived classes.
+*/
 
 class hittable
 {

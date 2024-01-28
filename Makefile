@@ -87,9 +87,11 @@ val: all
 	valgrind --leak-check=full ./$(NAME) > image.ppm
 var: val
 
+docs:
+	doxygen
 
 
 
 #####   PHONY   #####
 
-.PHONY: all clean fclean re bonus test dtest run rrun val var
+.PHONY: all clean fclean re bonus test dtest run rrun val var docs
