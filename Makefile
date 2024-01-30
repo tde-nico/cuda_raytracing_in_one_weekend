@@ -88,8 +88,10 @@ val: all
 var: val
 
 docs:
-	doxygen
+	@ doxygen
 
+latex: docs
+	@ make -s -C docs/latex
 
 
 #####   PHONY   #####
