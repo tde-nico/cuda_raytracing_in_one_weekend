@@ -4,20 +4,46 @@
 # include "ray.cuh"
 # include "hittable.cuh"
 
+
+/**
+ * @brief generates a random uniform vec3
+ * @param s the pointer of the curandState
+ * @return a random uniform vec3
+ * 
+ * Given the current cuda random state, it generates a uniform vec3
+*/
 __device__ vec3	unit_sphere_rand(curandState *s)
 {
 	vec3	p;
 
 	p = vec3(curand_uniform(s),curand_uniform(s),curand_uniform(s)) * 2.0f - vec3(1,1,1);
 	while (p.length_squared() >= 1.0f)
+		p = vec3(curand_uniform(s),curand_uniform(s),curand_uniform(s)) * 2.0f - vec3(1,1,1);
 	return (p);
 }
 
+/**
+ * @brief Computes a reflection
+ * @param v the direction of the ray
+ * @param u the normal of the ray
+ * @return the reflected ray
+ * 
+ * Computes the reflection of a given ray
+*/
 __device__ vec3	reflect(const vec3 &v, const vec3 &u)
 {
-	return (v - u * dot(v, u) *2.0f);
+	return (v - u * dot(v, u) * 2.0f);
 }
 
+
+/**
+ * @brief Computes an approssimated refraction
+ * @param cos cosine of the refraction
+ * @param ir the refraction index
+ * @return the refraction probability
+ * 
+ * An algorithm of approximation of glass refraction by Christophe Schlick
+*/
 __device__ float	schlick(float cos, float ir)
 {
 	float	r;
@@ -27,6 +53,18 @@ __device__ float	schlick(float cos, float ir)
 	return (r + (1.0f - r)*pow((1.0f - cos), 5.0f));
 }
 
+
+/**
+ * @brief Computes a refraction
+ * @param v direction unit vector
+ * @param u outward unit vector
+ * @param ni_over_nt normals refraction indices
+ * @param refracted the output refraction
+ * @return a bool: true if the ray is refracted else false
+ * 
+ * Computes a refraction by its parameters and fills the refracted parameter with
+ * the output refraction given by the Snell's law.
+*/
 __device__ bool	refract(const vec3 &v, const vec3 &u, float ni_over_nt, vec3 &refracted)
 {
 	vec3	uv;
@@ -45,21 +83,57 @@ __device__ bool	refract(const vec3 &v, const vec3 &u, float ni_over_nt, vec3 &re
 }
 
 
+/**
+ * @brief The abstract class of materials
+ * 
+ * Represents the materials with their ray scattering virtual function.
+*/
 class material
 {
 	public:
+		/**
+		 * @brief Computes the scatter of a given ray
+		 * @param r_in the input ray
+		 * @param rec the hit point informations
+		 * @param attenuation filled with material attenuation
+		 * @param scattered the scattered ray
+		 * @param state the random state
+		 * @return true if scattered else flase
+		 * 
+		 * Computes the scatter of a given ray
+		*/
 		__device__ virtual bool	scatter(const ray &r_in, const t_hit_record &rec,
 			vec3 &attenuation, ray &scattered, curandState *state) const = 0;
 };
 
 
+/**
+ * @brief A lambertian material derived from material class
+ * 
+ * A lambertian material derived from material class
+*/
 class lambertian: public material
 {
 	public:
 		vec3	albedo;
 
+		/**
+		 * @brief A lambertian constructor
+		 * @param a the lambertian albedo
+		*/
 		__device__ lambertian(const vec3 &a): albedo(a) {}
-		
+
+		/**
+		 * @brief Computes the scatter of a given ray
+		 * @param r_in the input ray
+		 * @param rec the hit point informations
+		 * @param attenuation filled with material attenuation
+		 * @param scattered the scattered ray
+		 * @param state the random state
+		 * @return true if scattered else flase
+		 * 
+		 * Computes the scatter of a given ray
+		*/
 		__device__ virtual bool	scatter(const ray &r_in, const t_hit_record &rec,
 			vec3 &attenuation, ray &scattered, curandState *state) const override
 		{
@@ -73,14 +147,35 @@ class lambertian: public material
 };
 
 
+/**
+ * @brief A metal material derived from material class
+ * 
+ * A metal material derived from material class
+*/
 class metal: public material
 {
 	public:
 		vec3	albedo;
 		float	fuzz;
 
+		/**
+		 * @brief A metal constructor
+		 * @param a the metal albedo
+		 * @param f the fuzz uniform value
+		*/
 		__device__ metal(const vec3 &a, float f): albedo(a), fuzz(f < 1 ? f : 1) {}
-		
+
+		/**
+		 * @brief Computes the scatter of a given ray
+		 * @param r_in the input ray
+		 * @param rec the hit point informations
+		 * @param attenuation filled with material attenuation
+		 * @param scattered the scattered ray
+		 * @param state the random state
+		 * @return true if scattered else flase
+		 * 
+		 * Computes the scatter of a given ray
+		*/
 		__device__ virtual bool	scatter(const ray &r_in, const t_hit_record &rec,
 			vec3 &attenuation, ray &scattered, curandState *state) const override
 		{
@@ -94,13 +189,33 @@ class metal: public material
 };
 
 
+/**
+ * @brief A dielectric material derived from material class
+ * 
+ * A dielectric material derived from material class
+*/
 class dielectric: public material
 {
 	public:
 		float	ir;
 
+		/**
+		 * @brief A dielectric constructor
+		 * @param ir the dielectric refraction index
+		*/
 		__device__ dielectric(float refraction_index): ir(refraction_index) {}
 
+		/**
+		 * @brief Computes the scatter of a given ray
+		 * @param r_in the input ray
+		 * @param rec the hit point informations
+		 * @param attenuation filled with material attenuation
+		 * @param scattered the scattered ray
+		 * @param state the random state
+		 * @return true if scattered else flase
+		 * 
+		 * Computes the scatter of a given ray
+		*/
 		__device__ virtual bool	scatter(const ray &r_in, const t_hit_record &rec,
 			vec3 &attenuation, ray &scattered, curandState *state) const override
 		{
