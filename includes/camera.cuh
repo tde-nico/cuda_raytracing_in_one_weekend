@@ -15,6 +15,13 @@
 # define LOWER_LEFT_CORNER vec3(-VIEW_W/2, -VIEW_H/2, -FOCAL_LEN)
 
 
+/**
+ * @brief generates a random uniform vec3
+ * @param s the pointer of the curandState
+ * @return a random uniform vec3
+ * 
+ * Given the current cuda random state, it generates a uniform vec3
+*/
 __device__ vec3	unit_disk_rand(curandState *s)
 {
 	vec3	p;
@@ -26,6 +33,12 @@ __device__ vec3	unit_disk_rand(curandState *s)
 }
 
 
+/**
+ * @brief The class representing the camera (POV)
+ * 
+ * This class represents the camera with its point of view, with its origin,
+ * focus, and render plane, it also provides a ray generator.
+*/
 class camera
 {
 	public:
@@ -38,6 +51,19 @@ class camera
 		vec3	w;
 		float	lens_radius;
 
+		/**
+		 * @brief The camera constructor
+		 * @param lookfrom the origin point
+		 * @param lookat where to look at
+		 * @param vup the camera relative up direction
+		 * @param vfov the vertical fov
+		 * @param aspect the aspect ratio of the camera
+		 * @param aperture the aperture of the lens of the camera
+		 * @param focus_dist the distance of perfect focus from the camera
+		 * 
+		 * given the initialization parameters, it creates the needed vectors to
+		 * then generate new rays from the camera
+		*/
 		__device__ camera(vec3 lookfrom, vec3 lookat, vec3 vup, float vfov, float aspect, float aperture, float focus_dist)
 		{
 			float	theta;
@@ -57,6 +83,16 @@ class camera
 			this->vertical = this->v * half_h * focus_dist * 2.0f;			
 		}
 
+		/**
+		 * @brief Generates a ray from the camera
+		 * @param s the uniform pointed x coordinate
+		 * @param t the uniform pointed y coordinate
+		 * @param state the random state
+		 * @return the ray pointing (x,y)
+		 * 
+		 * It generates a ray from the camera in the direction (x,y) with a slight
+		 * shift given by the lens focus
+		*/
 		__device__ ray	get_ray(float s, float t, curandState *state)
 		{
 			vec3	offset;
@@ -70,6 +106,17 @@ class camera
 };
 
 
+/**
+ * @brief An optimized version of camera->get_ray
+ * @param c the camera
+ * @param s the uniform pointed x coordinate
+ * @param t the uniform pointed y coordinate
+ * @param state the random state
+ * @return the ray pointing (x,y)
+ * 
+ * An optimized version of camera->get_ray used to skip some operations of fetching
+ * from the class vtable at runtime to gain performance
+*/
 __device__ ray	O_get_ray(camera *c, float s, float t, curandState *state)
 {
 	vec3	offset;
