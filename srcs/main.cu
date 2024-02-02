@@ -3,6 +3,17 @@
 
 // #################### RENDER ####################
 
+
+/**
+ * @brief Computes the path of a given ray
+ * @param r the ray to analyze
+ * @param world the current world where the ray is been analyzed
+ * @param rand_state the current random state
+ * @return the color of the resulting ray's path
+ * 
+ * This function computes the path of a give ray, by hitting a material and
+ * scattering until no hits occours or when approaching the refraction limit
+*/
 __device__ vec3	ray_color(const ray &r, hittable **world, curandState *rand_state)
 {
 	ray				curr_ray;
@@ -14,7 +25,6 @@ __device__ vec3	ray_color(const ray &r, hittable **world, curandState *rand_stat
 	att = vec3(1, 1, 1);
 	for (int i = 0; i < REFRACTION; ++i)
 	{
-		//if ((*world)->hit(curr_ray, 0.001f, FLT_MAX, rec))
 		if (O_hit((hittable_list *)*world, curr_ray, 0.001f, FLT_MAX, rec))
 		{
 			ray		scattered;
@@ -38,6 +48,19 @@ __device__ vec3	ray_color(const ray &r, hittable **world, curandState *rand_stat
 }
 
 
+/**
+ * @brief Computes the color of a given pixel
+ * @param buf the final buffer image
+ * @param cam the camera where the rays are coming from
+ * @param world the current world to analyze with the rays
+ * @param rand_state the current random state
+ * 
+ * This function computes the color of a given pixel by scattering
+ * a fixed amount of sample rays to approximate the color of the given area,
+ * it can also improve the quality of the resulting image by using also the
+ * samples of the adiacent pixels via shared memory and executing some
+ * gamma corretion to correct the output color.
+*/
 __global__ void	render(vec3 *buf, camera **cam, hittable **world, curandState *rand_state)
 {
 	int			x;
@@ -119,6 +142,12 @@ __global__ void	render(vec3 *buf, camera **cam, hittable **world, curandState *r
 // #################### INIT ####################
 
 
+/**
+ * @brief Initialize a random state
+ * @param rand_state the current random state
+ * 
+ * This function initialize the given random state
+*/
 __global__ void	rand_init(curandState *rand_state)
 {
 	int		x;
@@ -136,6 +165,15 @@ __global__ void	rand_init(curandState *rand_state)
 
 
 #define RND (curand_uniform(&local_rand_state))
+/**
+ * @brief Initialize the current world
+ * @param d_list the list of objects in the world
+ * @param d_world the world to render
+ * @param d_camera the camera to render from
+ * @param rand_state the current random state
+ * 
+ * This function initialize the given random state
+*/
 __global__ void	create_world(hittable **d_list, hittable **d_world, camera **d_camera, curandState *rand_state)
 {
 	if (threadIdx.x != 0 || blockIdx.x != 0)
@@ -175,6 +213,15 @@ __global__ void	create_world(hittable **d_list, hittable **d_world, camera **d_c
 // #################### FREE ####################
 
 
+/**
+ * @brief Deletes the world data on the device
+ * @param d_list the list of objects in the world
+ * @param d_world the world to render
+ * @param d_camera the camera to render from
+ * 
+ * This function deletes all the previously created objects in the
+ * world and the world itself with its list
+*/
 __global__ void	free_world(hittable **d_list, hittable **d_world, camera **d_camera)
 {
 	if (threadIdx.x != 0 || blockIdx.x != 0)
@@ -191,6 +238,15 @@ __global__ void	free_world(hittable **d_list, hittable **d_world, camera **d_cam
 
 // #################### UTILS ####################
 
+
+/**
+ * @brief Writes color in the oust stream
+ * @param out the output stream
+ * @param pixel the color to write
+ * 
+ * This function writes a color given as uniform vec3 into
+ * an out ostream
+*/
 inline void	write_color(std::ostream &out, vec3 pixel)
 {
 	out << int(255.99 * pixel.r()) << ' '
@@ -198,6 +254,14 @@ inline void	write_color(std::ostream &out, vec3 pixel)
 		<< int(255.99 * pixel.b()) << '\n';
 }
 
+
+/**
+ * @brief Writes the image into the output
+ * @param buf the matrix representing the image
+ * 
+ * This function writes the image into the output stream
+ * by using ppm format
+*/
 inline void	print(vec3 *buf)
 {
 	std::cout << "P3\n" << W << " " << H << "\n255\n";
@@ -212,9 +276,19 @@ inline void	print(vec3 *buf)
 // #################### MAIN ####################
 
 
+/**
+ * @brief The main function
+ * 
+ * In this function anfter allocating the host needed memory,
+ * the world initializer is called, then a kernel is deployed
+ * for every pixel to compute the colors, that are printed after
+ * the coputation, ending with the memory deallocation.
+*/
 int	main(void)
 {
-	//vec3			*h_buf;
+	#if !MANEGED
+		vec3		*h_buf;
+	#endif
 	vec3			*d_buf;
 	hittable_list	**d_list;
 	hittable_list	**d_world;
@@ -227,10 +301,13 @@ int	main(void)
 	std::cerr << "Rendering a " << W << "x" << H << " image with " << SAMPLES;
 	std::cerr << " samples per pixel in " << BLOCK_W << "x" << BLOCK_H << " blocks.\n";
 
-	CHECK(cudaMallocManaged((void **)&d_buf, BSIZE));
-	//h_buf = (vec3 *)malloc(BSIZE);
-	//CHECK(cudaMalloc((void **)&d_buf, BSIZE));
-	//CHECK(cudaMemcpy(d_buf, h_buf, BSIZE, cudaMemcpyHostToDevice));
+	#if MANEGED
+		CHECK(cudaMallocManaged((void **)&d_buf, BSIZE));
+	#else
+		h_buf = (vec3 *)malloc(BSIZE);
+		CHECK(cudaMalloc((void **)&d_buf, BSIZE));
+		CHECK(cudaMemcpy(d_buf, h_buf, BSIZE, cudaMemcpyHostToDevice));
+	#endif
 
 	CHECK(cudaMalloc((void **)&d_rand_state, PIXELS * sizeof(curandState)));
 	CHECK(cudaMalloc((void **)&d_rand_state2, sizeof(curandState)));
@@ -257,10 +334,12 @@ int	main(void)
 	stop = clock();
 	std::cerr << "Took: " << ((double)(stop - start)) / CLOCKS_PER_SEC << "\n";
 
-	//CHECK(cudaMemcpy(h_buf, d_buf, BSIZE, cudaMemcpyDeviceToHost));
-
-	print(d_buf);
-	//print(h_buf);
+	#if MANEGED
+		print(d_buf);
+	#else
+		CHECK(cudaMemcpy(h_buf, d_buf, BSIZE, cudaMemcpyDeviceToHost));
+		print(h_buf);
+	#endif
 
 	free_world<<<1,1>>>((hittable **)d_list, (hittable **)d_world, d_camera);
 	CHECK(cudaGetLastError());
@@ -271,7 +350,9 @@ int	main(void)
 	CHECK(cudaFree(d_rand_state));
 	CHECK(cudaFree(d_rand_state2));
 	CHECK(cudaFree(d_buf));
-	//free(h_buf);
+	#if !MANEGED
+		free(h_buf);
+	#endif
 
 	return (0);
 }
