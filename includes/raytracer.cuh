@@ -29,9 +29,10 @@
 # define SEED 42
 # define REFRACTION 100
 
-# define SHARED 0
+# define SHARED 1
 # define WEIGHT 0.5f
 
+# define MANEGED 1
 
 
 #endif
