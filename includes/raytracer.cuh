@@ -20,16 +20,16 @@
 # define H 800
 # define PIXELS W * H
 
-# define SAMPLES 32
+# define SAMPLES 100
 
 # define BSIZE PIXELS * sizeof(vec3)
 # define BLOCK_W 8
 # define BLOCK_H 8
 
-# define SEED 42
+# define SEED 89
 # define REFRACTION 100
 
-# define SHARED 1
+# define SHARED 0
 # define WEIGHT 0.5f
 
 # define MANEGED 0
