@@ -1,0 +1,33 @@
+1200x800 - 32 samples - 50 reflections
+
+CPU							29m	29.177s
+cuda + iter depth			1m	11.783s
+"" + vtable skip				3.2315s
+"" + shared memory				2.7473s
+"" + fast_math					2.0407s
+"" + known stack size			1.8742s
+"" + managed -> host cpy		1.6197s
+'' + dynamic				3m	30.874s
+'' + shared samples				1.5318s
+'' + 32x32 block				1.5152s
+
+"" = previous line
+'' = previous ""
+
+
+1200x800 - 128 samples - 100 reflections
+
+4x4			16.109s
+4x8			10.014s
+8x8			8.4657s
+8x12		9.0153s
+8x16		8.8721s
+12x12		9.5125s
+12x16		8.8382s
+16x16		8.5458s
+16x24		8.7968s
+24x24		11.190s
+24x32		9.6666s
+32x32		8.2290s
+
+

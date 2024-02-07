@@ -29,3 +29,31 @@ plt.title('Block Bentchmarks')
 plt.show()
 
 
+data = [
+#	["CPU",					29*60+	29.177],
+#	["cuda + iter depth",	1*60+	11.783],
+	["vtable skip",					3.2315],
+	["shared memory",				2.7473],
+	["fast_math",					2.0407],
+	["known stack size",			1.8742],
+	["managed -> host cpy",			1.6197],
+#	["dynamic",				3*60+	30.874],
+	["shared samples",				1.5318],
+	["32x32 block",					1.5152],
+]
+
+
+#x = [data[i][0] for i in range(len(data))]
+x = [i for i in range(len(data))]
+y = [data[i][1] for i in range(len(data))]
+
+x_indices = range(len(x))
+
+plt.plot(x_indices, y, marker='o', linestyle='-')
+plt.xticks(x_indices, x)
+
+plt.xlabel('Optimization')
+plt.ylabel('Time (s)')
+plt.title('Time Bentchmarks')
+plt.show()
+
