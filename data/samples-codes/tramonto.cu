@@ -1,3 +1,4 @@
+#include "material.cuh"
 #include "raytracer.cuh"
 
 
@@ -40,8 +41,14 @@ __device__ vec3	ray_color(const ray &r, hittable **world, curandState *rand_stat
 		else
 		{
 			vec3 unit_direction = unit_vector(curr_ray.direction());
-			t = 0.5f * (unit_direction.y() + 1.0f);
-			return ((vec3(1,1,1)*(1.0f-t) + vec3(0.5,0.7,1.0)*t) * att);
+			t = 0.5f * (unit_direction.z() + 1.0f);
+			return ((vec3(0.1,0.3,0.5)*(1.0f-t) + vec3(0.95, 0.4, 0.35)*t) * att);
+			// 2: return ((vec3(0.42,0.35,0.6)*(1.0f-t) + vec3(0.7, 0.2, 0.23)*t) * att);
+			// 3: return ((vec3(0.3,0.2,0.6)*(1.0f-t) + vec3(0.7, 0.2, 0.23)*t) * att);
+			// 4: return ((vec3(0.07,0.09,0.2)*(1.0f-t) + vec3(0.18, 0.28, 0.42)*t) * att);
+			// 6: return ((vec3(0.6, 0.1, 0.1)*(1.0f-t) + vec3(0.07,0.09,0.2)*t) * att);
+			// 5: t = 0.5f * (unit_direction.x() + 1.0f);
+			//    return ((vec3(0.07,0.09,0.2)*(1.0f-t) + vec3(0.7, 0.2, 0.23)*t) * att);
 		}
 	}
 	return (vec3(0, 0, 0));
@@ -71,7 +78,10 @@ __global__ void	render(vec3 *buf, camera **cam, hittable **world, curandState *r
 	float		u;
 	float		v;
 	ray			r;
-	__shared__ vec3	share_sam[BLOCK_H][BLOCK_W];
+
+	#if SHARED
+		__shared__ vec3	share_sam[BLOCK_H][BLOCK_W];
+	#endif
 
 
 	x = blockDim.x * blockIdx.x + threadIdx.x;
@@ -85,31 +95,23 @@ __global__ void	render(vec3 *buf, camera **cam, hittable **world, curandState *r
 	}
 	i = W*y + x;
 
-	state = rand_state[i * SAMPLES + threadIdx.z];
-
-	if (!threadIdx.z)
-		share_sam[threadIdx.y][threadIdx.x] = vec3(0, 0, 0);
-	__syncthreads();
-
-	u = float(x + curand_uniform(&state)) / float(W);
-	v = float(y + curand_uniform(&state)) / float(H);
-	r = O_get_ray(*cam, u, v, &state);
-	color = ray_color(r, world, &state);
-
+	state = rand_state[i];
+	color = vec3(0, 0, 0);
+	for (int s = 0; s < SAMPLES; ++s)
+	{
+		u = float(x + curand_uniform(&state)) / float(W);
+		v = float(y + curand_uniform(&state)) / float(H);
+		r = O_get_ray(*cam, u, v, &state);
+		color += ray_color(r, world, &state);
+	}
 	color /= float(SAMPLES);
-	atomicAdd(&share_sam[threadIdx.y][threadIdx.x][0], color[0]);
-	atomicAdd(&share_sam[threadIdx.y][threadIdx.x][1], color[1]);
-	atomicAdd(&share_sam[threadIdx.y][threadIdx.x][2], color[2]);
-	if (threadIdx.z)
-		return ;
-	__syncthreads();
-	color = share_sam[threadIdx.y][threadIdx.x];
-
 
 	#if SHARED
 		vec3	sam;
 		float	counter;
 
+		share_sam[threadIdx.y][threadIdx.x] = color;
+		__syncthreads();
 		sam = vec3(0,0,0);
 		counter = 0;
 
@@ -133,6 +135,7 @@ __global__ void	render(vec3 *buf, camera **cam, hittable **world, curandState *r
 			sam += share_sam[threadIdx.y-1][threadIdx.x];
 			++counter;
 		}
+
 		color = (1-WEIGHT) * color + WEIGHT * sam / counter;
 	#endif
 
@@ -164,7 +167,7 @@ __global__ void	rand_init(curandState *rand_state)
 		return ;
 	i = W*y + x;
 
-	curand_init(SEED, i * SAMPLES + threadIdx.z, 0, &rand_state[i * SAMPLES + threadIdx.z]);
+	curand_init(SEED, i, 0, &rand_state[i]);
 }
 
 
@@ -184,7 +187,9 @@ __global__ void	create_world(hittable **d_list, hittable **d_world, camera **d_c
 		return ;
 
 	curandState local_rand_state = *rand_state;
-	d_list[0] = new sphere(vec3(0,-1000.0,-1), 1000, new lambertian(vec3(0.5, 0.5, 0.5)));
+	// d_list[0] = new sphere(vec3(0,-1000.0,-1), 1000, new lambertian(vec3(0.5, 0.5, 0.5)));
+	d_list[0] = new sphere(vec3(0,-1000.0,-1), 1000, new lambertian(vec3(0.2, 0.4, 0.2)));
+	// d_list[0] = new sphere(vec3(0,-1000.0,-1), 1000, new dielectric(1.5));
 	int i = 1;
 	for(int a = -11; a < 11; ++a)
 	{
@@ -201,15 +206,18 @@ __global__ void	create_world(hittable **d_list, hittable **d_world, camera **d_c
 				d_list[i++] = new sphere(center, 0.2, new dielectric(1.5));
 		}
 	}
-	d_list[i++] = new sphere(vec3(0, 1,0),  1.0, new dielectric(1.5));
-	d_list[i++] = new sphere(vec3(-4, 1, 0), 1.0, new lambertian(vec3(0.4, 0.2, 0.1)));
-	d_list[i++] = new sphere(vec3(4, 1, 0),  1.0, new metal(vec3(0.7, 0.6, 0.5), 0.0));
-	*d_world  = new hittable_list(d_list, 22*22+1+3);
+	d_list[i++] = new sphere(vec3(7, 1,0),  1.0, new dielectric(1.3));
+	d_list[i++] = new sphere(vec3(7, 1,0),  -0.9, new dielectric(1.3));
+	d_list[i++] = new sphere(vec3(3, 1, 1),  1.0, new lambertian(vec3(0.08, 0.6, 0.5)));
+	d_list[i++] = new sphere(vec3(0, 1, 4), 1.0, new lambertian(vec3(0.3, 0.2, 0.5)));
+	d_list[i++] = new sphere(vec3(4, 1, 4),  1.0, new metal(vec3(0.7, 0.6, 0.5), 0.0));
+	// d_list[i++] = new sphere(vec3(-9, 1, -9),  1.0, new metal(vec3(0.9, 0.9, 0.3), 0.0));
+	*d_world  = new hittable_list(d_list, 22*22+1+5);
 
-	vec3 lookfrom(13,2,3);
-	vec3 lookat(0,0,0);
-	float dist_to_focus = 10.0; (lookfrom-lookat).length();
-	float aperture = 0.1;
+	vec3 lookfrom(13,2,1);
+	vec3 lookat(0,0,3);
+	float dist_to_focus = (lookfrom-lookat).length();
+	float aperture = 0.05;
 	*d_camera = new camera(lookfrom, lookat, vec3(0,1,0), 30.0, ASPECT_RATIO, aperture, dist_to_focus);
 }
 
@@ -230,7 +238,7 @@ __global__ void	free_world(hittable **d_list, hittable **d_world, camera **d_cam
 {
 	if (threadIdx.x != 0 || blockIdx.x != 0)
 		return ;
-	for (int i = 0; i < 22*22+1+3; ++i)
+	for (int i = 0; i < 22*22+1+5; ++i)
 	{
 		delete ((sphere *)d_list[i])->mat;
 		delete d_list[i];
@@ -302,7 +310,7 @@ int	main(void)
 	clock_t			start;
 	clock_t			stop;
 
-	std::cerr << "Rendering a " << W << "x" << H << " image with " << SAMPLES;
+	std::cerr << "Rendering a " << W << "x" << H << " image with " << SAMPLES << " " << sizeof(t_hit_record);
 	std::cerr << " samples per pixel in " << BLOCK_W << "x" << BLOCK_H << " blocks.\n";
 
 	#if MANEGED
@@ -313,9 +321,9 @@ int	main(void)
 		CHECK(cudaMemcpy(d_buf, h_buf, BSIZE, cudaMemcpyHostToDevice));
 	#endif
 
-	CHECK(cudaMalloc((void **)&d_rand_state, PIXELS * SAMPLES * sizeof(curandState)));
+	CHECK(cudaMalloc((void **)&d_rand_state, PIXELS * sizeof(curandState)));
 	CHECK(cudaMalloc((void **)&d_rand_state2, sizeof(curandState)));
-	CHECK(cudaMalloc((void **)&d_list, (22*22+1+3)*sizeof(hittable *)));
+	CHECK(cudaMalloc((void **)&d_list, (22*22+1+5)*sizeof(hittable *)));
 	CHECK(cudaMalloc((void **)&d_world, sizeof(hittable *)));
 	CHECK(cudaMalloc((void **)&d_camera, sizeof(camera *)));
 	rand_init<<<1, 1>>>(d_rand_state2);
@@ -326,7 +334,7 @@ int	main(void)
 	CHECK(cudaDeviceSynchronize());
 
 	dim3 blocks(W / BLOCK_W + 1, H / BLOCK_H + 1);
-	dim3 threads(BLOCK_W, BLOCK_H, SAMPLES);
+	dim3 threads(BLOCK_W, BLOCK_H);
 	rand_init<<<blocks, threads>>>(d_rand_state);
 	CHECK(cudaGetLastError());
 	CHECK(cudaDeviceSynchronize());
