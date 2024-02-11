@@ -98,7 +98,7 @@ class material
 		 * @param attenuation filled with material attenuation
 		 * @param scattered the scattered ray
 		 * @param state the random state
-		 * @return true if scattered else flase
+		 * @return true if scattered else false
 		 * 
 		 * Computes the scatter of a given ray
 		*/
@@ -130,7 +130,7 @@ class lambertian: public material
 		 * @param attenuation filled with material attenuation
 		 * @param scattered the scattered ray
 		 * @param state the random state
-		 * @return true if scattered else flase
+		 * @return true if scattered else false
 		 * 
 		 * Computes the scatter of a given ray
 		*/
@@ -172,7 +172,7 @@ class metal: public material
 		 * @param attenuation filled with material attenuation
 		 * @param scattered the scattered ray
 		 * @param state the random state
-		 * @return true if scattered else flase
+		 * @return true if scattered else false
 		 * 
 		 * Computes the scatter of a given ray
 		*/
@@ -212,7 +212,7 @@ class dielectric: public material
 		 * @param attenuation filled with material attenuation
 		 * @param scattered the scattered ray
 		 * @param state the random state
-		 * @return true if scattered else flase
+		 * @return true if scattered else false
 		 * 
 		 * Computes the scatter of a given ray
 		*/

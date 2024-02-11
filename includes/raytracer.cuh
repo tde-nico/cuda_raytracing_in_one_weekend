@@ -32,7 +32,7 @@
 # define SHARED 1
 # define WEIGHT 0.5f
 
-# define MANEGED 0
+# define MANAGED 0
 
 
 #endif
