@@ -73,8 +73,9 @@ re: fclean all
 #####   EXTRA RULES   #####
 
 test: all
-	@ ./$(NAME) > image.ppm
-	@ xdg-open image.ppm
+	@ ./$(NAME)
+#	 > image.ppm
+#	@ xdg-open image.ppm
 
 #  https://developer.nvidia.com/tools-overview
 dtest:
