@@ -3,13 +3,7 @@
 objs/
 docs/
 vids/
-_jpg2avi/
-_png2jpg/
-_ppm2png/
 
 # files
 ray
 image.ppm
-jpg2avi
-png2jpg
-ppm2png
