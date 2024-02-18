@@ -19,6 +19,8 @@ NAME			= ray
 #####   COMMANDS   #####
 
 CC				= nvcc
+# -rdc=true stands for Relocatable Device Code
+# -DCUDA_FORCE_CDP1_IF_SUPPORTED
 CFLAGS			= -g --use_fast_math -rdc=true
 
 MD				= mkdir -p
@@ -50,7 +52,7 @@ $(NAME): $(OBJ_SUB_DIRS) $(OBJS)
 	@ echo "$(GREEN)[+] $(NAME)$(END)"
 
 $(OBJ_DIR)/%.o : $(SRC_DIR)/%.cu $(INCS)
-	@ $(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@
+	@ $(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@ 2> /dev/null
 	@ echo "$(BLUE)[+] $@$(END)"
 
 $(OBJ_SUB_DIRS):
@@ -73,9 +75,8 @@ re: fclean all
 #####   EXTRA RULES   #####
 
 test: all
-	@ ./$(NAME)
-#	 > image.ppm
-#	@ xdg-open image.ppm
+	@ ./$(NAME) > image.ppm
+	@ xdg-open image.ppm
 
 #  https://developer.nvidia.com/tools-overview
 dtest:

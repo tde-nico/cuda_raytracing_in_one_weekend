@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,20 +13,35 @@ import (
 )
 
 func main() {
-	aw, err := mjpeg.New("test.avi", 1200, 800, 60)
+	var (
+		inDir string
+		out   string
+		w     int
+		h     int
+		fps   int
+	)
+
+	flag.StringVar(&inDir, "i", "jpgs", "Input directory")
+	flag.StringVar(&out, "o", "out.avi", "Output file")
+	flag.IntVar(&w, "w", 1200, "Width of the video")
+	flag.IntVar(&h, "h", 800, "Height of the video")
+	flag.IntVar(&fps, "fps", 60, "Frames per second")
+	flag.Parse()
+
+	aw, err := mjpeg.New(out, int32(w), int32(h), int32(fps))
 	if err != nil {
 		panic(err)
 	}
 
-	entries, err := os.ReadDir("jpgs/")
+	entries, err := os.ReadDir(inDir)
 	if err != nil {
 		fmt.Printf("Could not read directory: %v\n", err)
 		os.Exit(1)
 	}
 
 	sort.Slice(entries, func(i, j int) bool {
-		n1 := strings.Split(entries[i].Name(), ".j")[0]
-		n2 := strings.Split(entries[j].Name(), ".j")[0]
+		n1 := strings.Split(entries[i].Name(), ".jpg")[0]
+		n2 := strings.Split(entries[j].Name(), ".jpg")[0]
 		v1, err := strconv.ParseFloat(n1, 32)
 		if err != nil {
 			panic(err)
@@ -37,8 +53,7 @@ func main() {
 		return v1 < v2
 	})
 	for _, file := range entries {
-		//data, err := os.ReadFile(filepath.Join("jpgs/", file.Name()))
-		data, err := os.ReadFile(filepath.Join("jpgs/", file.Name()))
+		data, err := os.ReadFile(filepath.Join(inDir, file.Name()))
 		if err != nil {
 			panic(err)
 		}

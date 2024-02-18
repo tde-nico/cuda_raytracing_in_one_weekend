@@ -292,7 +292,7 @@ inline void	print(vec3 *buf)
 */
 int	main(void)
 {
-	#if !MANEGED
+	#if !MANAGED
 		vec3		*h_buf;
 	#endif
 	vec3			*d_buf;
@@ -304,10 +304,10 @@ int	main(void)
 	clock_t			start;
 	clock_t			stop;
 
-	std::cerr << "Rendering a " << W << "x" << H << " image with " << SAMPLES << " " << sizeof(t_hit_record);
+	std::cerr << "Rendering a " << W << "x" << H << " image with " << SAMPLES;
 	std::cerr << " samples per pixel in " << BLOCK_W << "x" << BLOCK_H << " blocks.\n";
 
-	#if MANEGED
+	#if MANAGED
 		CHECK(cudaMallocManaged((void **)&d_buf, BSIZE));
 	#else
 		CHECK(cudaMallocHost((void **)&h_buf, BSIZE));
@@ -340,14 +340,11 @@ int	main(void)
 	stop = clock();
 	std::cerr << "Took: " << ((double)(stop - start)) / CLOCKS_PER_SEC << "\n";
 
-	#if MANEGED
+	#if MANAGED
 		print(d_buf);
 	#else
-		start = clock();
 		CHECK(cudaMemcpy(h_buf, d_buf, BSIZE, cudaMemcpyDeviceToHost));
 		print(h_buf);
-		stop = clock();
-		std::cerr << "Took: " << (double)(stop - start) << "\n";
 	#endif
 
 	free_world<<<1,1>>>((hittable **)d_list, (hittable **)d_world, d_camera);
@@ -359,7 +356,7 @@ int	main(void)
 	CHECK(cudaFree(d_rand_state));
 	CHECK(cudaFree(d_rand_state2));
 	CHECK(cudaFree(d_buf));
-	#if !MANEGED
+	#if !MANAGED
 		CHECK(cudaFreeHost(h_buf));
 	#endif
 

@@ -42,13 +42,13 @@ __device__ vec3	ray_color(const ray &r, hittable **world, curandState *rand_stat
 		{
 			vec3 unit_direction = unit_vector(curr_ray.direction());
 			t = 0.5f * (unit_direction.z() + 1.0f);
-			return ((vec3(0.1,0.3,0.5)*(1.0f-t) + vec3(0.95, 0.4, 0.35)*t) * att);
+			return ((vec3(0.07,0.09,0.2)*(1.0f-t) + vec3(0.7, 0.2, 0.23)*t) * att);
+			// 1: return ((vec3(0.1,0.3,0.5)*(1.0f-t) + vec3(0.95, 0.4, 0.35)*t) * att);
 			// 2: return ((vec3(0.42,0.35,0.6)*(1.0f-t) + vec3(0.7, 0.2, 0.23)*t) * att);
 			// 3: return ((vec3(0.3,0.2,0.6)*(1.0f-t) + vec3(0.7, 0.2, 0.23)*t) * att);
 			// 4: return ((vec3(0.07,0.09,0.2)*(1.0f-t) + vec3(0.18, 0.28, 0.42)*t) * att);
 			// 6: return ((vec3(0.6, 0.1, 0.1)*(1.0f-t) + vec3(0.07,0.09,0.2)*t) * att);
 			// 5: t = 0.5f * (unit_direction.x() + 1.0f);
-			//    return ((vec3(0.07,0.09,0.2)*(1.0f-t) + vec3(0.7, 0.2, 0.23)*t) * att);
 		}
 	}
 	return (vec3(0, 0, 0));
@@ -187,9 +187,7 @@ __global__ void	create_world(hittable **d_list, hittable **d_world, camera **d_c
 		return ;
 
 	curandState local_rand_state = *rand_state;
-	// d_list[0] = new sphere(vec3(0,-1000.0,-1), 1000, new lambertian(vec3(0.5, 0.5, 0.5)));
 	d_list[0] = new sphere(vec3(0,-1000.0,-1), 1000, new lambertian(vec3(0.2, 0.4, 0.2)));
-	// d_list[0] = new sphere(vec3(0,-1000.0,-1), 1000, new dielectric(1.5));
 	int i = 1;
 	for(int a = -11; a < 11; ++a)
 	{
@@ -211,7 +209,6 @@ __global__ void	create_world(hittable **d_list, hittable **d_world, camera **d_c
 	d_list[i++] = new sphere(vec3(3, 1, 1),  1.0, new lambertian(vec3(0.08, 0.6, 0.5)));
 	d_list[i++] = new sphere(vec3(0, 1, 4), 1.0, new lambertian(vec3(0.3, 0.2, 0.5)));
 	d_list[i++] = new sphere(vec3(4, 1, 4),  1.0, new metal(vec3(0.7, 0.6, 0.5), 0.0));
-	// d_list[i++] = new sphere(vec3(-9, 1, -9),  1.0, new metal(vec3(0.9, 0.9, 0.3), 0.0));
 	*d_world  = new hittable_list(d_list, 22*22+1+5);
 
 	vec3 lookfrom(13,2,1);
@@ -298,7 +295,7 @@ inline void	print(vec3 *buf)
 */
 int	main(void)
 {
-	#if !MANEGED
+	#if !MANAGED
 		vec3		*h_buf;
 	#endif
 	vec3			*d_buf;
@@ -310,10 +307,10 @@ int	main(void)
 	clock_t			start;
 	clock_t			stop;
 
-	std::cerr << "Rendering a " << W << "x" << H << " image with " << SAMPLES << " " << sizeof(t_hit_record);
+	std::cerr << "Rendering a " << W << "x" << H << " image with " << SAMPLES;
 	std::cerr << " samples per pixel in " << BLOCK_W << "x" << BLOCK_H << " blocks.\n";
 
-	#if MANEGED
+	#if MANAGED
 		CHECK(cudaMallocManaged((void **)&d_buf, BSIZE));
 	#else
 		CHECK(cudaMallocHost((void **)&h_buf, BSIZE));
@@ -346,14 +343,11 @@ int	main(void)
 	stop = clock();
 	std::cerr << "Took: " << ((double)(stop - start)) / CLOCKS_PER_SEC << "\n";
 
-	#if MANEGED
+	#if MANAGED
 		print(d_buf);
 	#else
-		start = clock();
 		CHECK(cudaMemcpy(h_buf, d_buf, BSIZE, cudaMemcpyDeviceToHost));
 		print(h_buf);
-		stop = clock();
-		std::cerr << "Took: " << (double)(stop - start) << "\n";
 	#endif
 
 	free_world<<<1,1>>>((hittable **)d_list, (hittable **)d_world, d_camera);
@@ -365,7 +359,7 @@ int	main(void)
 	CHECK(cudaFree(d_rand_state));
 	CHECK(cudaFree(d_rand_state2));
 	CHECK(cudaFree(d_buf));
-	#if !MANEGED
+	#if !MANAGED
 		CHECK(cudaFreeHost(h_buf));
 	#endif
 

@@ -328,7 +328,7 @@ int	main(void)
 	int center_y = 0;
 	int radius = 17;
 
-	for (float angle = 322.0f; angle < 360.0f; angle += 0.5f) {
+	for (float angle = 0.0f; angle < 360.0f; angle += 0.5f) {
 		float radian = angle * PI / 180.0;
 		float x = float(center_x) + float(radius) * cos(radian);
 		float y = float(center_y) + float(radius) * sin(radian);
