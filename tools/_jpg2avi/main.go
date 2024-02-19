@@ -52,6 +52,7 @@ func main() {
 		}
 		return v1 < v2
 	})
+
 	for _, file := range entries {
 		data, err := os.ReadFile(filepath.Join(inDir, file.Name()))
 		if err != nil {
