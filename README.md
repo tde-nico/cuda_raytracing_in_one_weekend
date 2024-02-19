@@ -1,6 +1,20 @@
 # cuda_raytracing_in_one_weekend
 
-[Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html) in cuda.
+<!--
+#field
+Learning
+
+#groups
+Sapienza
+
+#languages
+cuda
+
+#frames and libs
+
+-->
+
+A cuda reimplemented version of [Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html).
 
 ## Usage
 
